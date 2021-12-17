@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SysML-D3 TraceaLibrary </title>
+<style>
+body {
+  font-family: 'Arial';
+  background-color: #fffff0;
+}
+.link line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+.node circle {
+  stroke: black;
+  stroke-width: 1.5px;
+}
+svg {
+	border: blue 1px;
+}
+.legend {
+  position: absolute;
+  right: 1%;
+  top: 1%;
+}
+</style>
+
+</meta>
+<body>
+  <div class="row">
+    <center>
+      <h1>
+        SysML-D3 TraceaLibrary
+      </h1>
+     <h2>
+        eDrone - Trace analysis
+      </h2>
+    </center>
+  </div>
+<div class="row">
+  <center>
+    <svg width="800" height="400" stroke="solid black 1px"></svg><br/>
+	
+  </center>
+  
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="http://d3js.org/d3-selection-multi.v1.js"></script>
+  
+  <script src="scripts/d3script.js"></script>
+  <div id="legend"></div>
+</div>
+</body>
