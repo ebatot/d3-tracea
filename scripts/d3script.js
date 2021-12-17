@@ -42,9 +42,10 @@ var svg = d3.select("svg"),
 	node,
 	edgelabels,
 	edgepaths,
-	degreeSize,
+	edgesize,
 	nGroups,
-	lGroups;
+	lGroups,
+	linkedByIndex;
 var container = svg.append('g');
 
 var gLines = container.append('g').attr("id", "lines");
@@ -74,6 +75,10 @@ var dataPath = "data/eDrone_example_out.json"
 if ( getUrlVars()['imf'] != null )
 	dataPath = getUrlVars()['imf'];
 
+function neighboring(a, b) {
+	return linkedByIndex[a.index + ',' + b.index];
+}
+
 d3.json(dataPath, function(error, graph) {
 	if (error) {
 		showError(datapath);
@@ -84,12 +89,9 @@ d3.json(dataPath, function(error, graph) {
 	nodes = graph.nodes;
 
 	
-	degreeSize = getLinearScale(nodes, CIRCLE_SIZE[0], CIRCLE_SIZE[1]);
-	var linkedByIndex = getLinkageByIndex(links);
+	edgesize = getLinearScale(nodes, CIRCLE_SIZE[0], CIRCLE_SIZE[1]);
+	linkedByIndex = getLinkageByIndex(links);
 	// A function to test if two nodes are neighboring.
-	function neighboring(a, b) {
-		return linkedByIndex[a.index + ',' + b.index];
-	}
 
 
 	/** Counting groups, for color rendering **/
@@ -100,18 +102,15 @@ d3.json(dataPath, function(error, graph) {
 	/** END ocunting groups **/
 
 
-	edges = [];
+	/** Connect Source/Targets of connections with their IDs */
+	/**  modify the graph.links with source_id and target_id */
 	links.forEach(function(e) { 
 		// Get the source and target nodes (connects IDs)
 		var sourceNode = nodes.filter(function(n) { return n.id === e.source_id; })[0],
 			targetNode = nodes.filter(function(n) { return n.id === e.target_id; })[0];
-
 		e.source = sourceNode;
 		e.target = targetNode;
-		// Add the edge to the array
-		edges.push({source: sourceNode, target: targetNode});
 	});
-		
 
 	edgepaths = gLines.selectAll(".edgepath")
 		.data(links)
@@ -120,12 +119,10 @@ d3.json(dataPath, function(error, graph) {
 		.attrs({
 			'class': 'edgepath',
 			'stroke': d => color(d.group+nGroups),
-			'stroke-width': function(d) { return degreeSize(d.confidence); },
-			'id': function (d) {return 'l' + d.id},
+			'stroke-width': function(d) { return edgesize(d.confidence); },
+			'id': function (d) {return 'ep' + d.id},
 			'pointer-events': 'none'
 		})
-
-
 
 	edgelabels = gLines.selectAll(".edgelabel")
 		.data(links)
@@ -134,13 +131,12 @@ d3.json(dataPath, function(error, graph) {
 		.style("pointer-events", "none")
 		.attrs({
 			'class': 'edgelabel',
-			'id': function (d, i) {return 'edgelabel' + i;},
-			'font-size': 12,
-			'fill': '#000'
+			'id': function (d) {return 'el' + d.id;},
+			'font-size': 12
 		});
 
 	edgelabels.append('textPath')
-		.attr('xlink:href', function (d, i) {return '#l' + d.id;})
+		.attr('xlink:href', function (d) {return '#ep' + d.id;})
 		.attr("startOffset", "50%")
 		.style("text-anchor", "middle")
 		.style("pointer-events", "none")
@@ -157,14 +153,13 @@ d3.json(dataPath, function(error, graph) {
 			.on("end", dragended)
 		);
 	
-	
 	node.append("circle")
 		.attrs({
 			'class': 'node',
 			'cx': d => d.x,
 			'cy': d => d.y,
 			// Use degree centrality from R igraph in json.
-			'r': function(d, i) { return degreeSize(d.size); },
+			'r': function(d, i) { return edgesize(d.size); },
 			// Color by group, a result of modularity calculation in R igraph.
 			"fill": function(d) { return color(d.group); },
 			'stroke-width': '1.0'
@@ -172,7 +167,6 @@ d3.json(dataPath, function(error, graph) {
 		.on('click', function(d, i) {
 			d3.event.stopPropagation();
 		})
-		
 			
 	node.append("text")
 		.text(function (d) { return d.name; })
@@ -187,22 +181,14 @@ d3.json(dataPath, function(error, graph) {
 		.text(d => d.name);
 	
 		
-/****************************************
-                    SLIDER
-****************************************/
-
-
-	//addSlider(thresholds["confidence"][0], nodes, links, nGroups)
-	//addSlider(thresholds["energy"][0], nodes, links, nGroups)
+/***  SLIDERS and LEGEND  ***/
 	Object.keys(thresholds).forEach(function (e) {
 		addSlider(e, nodes, links, nGroups);
 	})
-
-	var legend = addlegend(legendNames);
+	addlegend(legendNames);
    
 		
-	//	<button type="stopButton"  onclick="stopMoving()">Stop moving !</button>
-
+/***  Simulation update  ***/
 	simulation
 		.nodes(nodes)
 		.on("tick", ticked);
@@ -213,7 +199,7 @@ d3.json(dataPath, function(error, graph) {
 		.links(links);
 	// Collision detection based on degree centrality.
 	simulation
-	 	.force("collide", d3.forceCollide().radius( function (d) { return degreeSize(d.size); }));
+	 	.force("collide", d3.forceCollide().radius( function (d) { return edgesize(d.size); }));
 });
 
 function addSlider(attribute, nodes, links, nGroups) {
@@ -242,14 +228,17 @@ function addSlider(attribute, nodes, links, nGroups) {
 		.style('width', '50%')
 		.style('display', 'block')
 		.on('input', function () { 
+
+console.log("input function")
 			var threshold = this.value;
 
+			// Update label text
 			d3.select('#label'+attribute).text(threshold);
 
 			// Find the links that are at or above the thresholds.
 			var newData = [];
 			links.forEach( function (d) {
-				container.select("#l"+d.id).remove()
+				container.select("#ep"+d.id).remove()
 				// Affect new threshold value for slider attribute
 				thresholds[attribute][2] = threshold
 				// testThresholds values -> consider link d
@@ -267,17 +256,19 @@ function addSlider(attribute, nodes, links, nGroups) {
 				.attrs({
 					'class': 'edgepath',
 					'stroke': d => color(d.group+nGroups),
-					'stroke-width': function(d) { return degreeSize(d[attribute]); },
-					'id': function (d) {return 'edgepath' + d.id},
+					'stroke-width': function(d) { return edgesize(d[attribute]); },
+					'id': function (d) {return 'ep' + d.id},
 					'pointer-events': 'none'
 				})
 			
 			edgepaths = edgepaths.merge(linkEnter);
+
 			node = node.data(nodes);
 			// Restart simulation with new link data.
 			simulation
 				.nodes(nodes).on('tick', ticked)
 				.force("link").links(newData);
+				/* Edgelabels remains in DOM but are not anchored, they are invisible*/
 
 			simulation.alphaTarget(0.1).restart();
 	});
@@ -306,9 +297,6 @@ function testThresholds(link) {
 			toInclude &= toInclTmp;
 		});
 	}
-
-
-	
 	return toInclude;
 }
 
@@ -408,7 +396,7 @@ function showError(datapath) {
 	d3.select("button").remove();
 }
 
-// Linear scale for degree centrality.
+// Linear scale for degree centrality. WITH SIZE
 function  getLinearScale(nodes, min, max) {
 	return d3.scaleLinear()
 		.domain([d3.min(nodes, function(d) {return d.size; }),d3.max(nodes, function(d) {return d.size; })])
