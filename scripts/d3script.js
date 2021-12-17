@@ -23,16 +23,21 @@ var moving = true;
 var MIN = "MIN",
  	MAX = "MAX",
 	OR  = "OR",
-	AND = "AND"
+	AND = "AND",
+	OFF = "OFF"
 
 thresholds = [] ;
-thresholdsMergeOperator = MIN;
+thresholdsCheckboxesValues = []
+var thresholdsMergeOperator;
 d3.json("data/thresholds.json", function(data) {
 	Object.keys(data.values).forEach(function (k) {
 		thresholdsMergeOperator = data.mergeOperator
 		thresholds[k] = data.values[k]
+		thresholdsCheckboxesValues[k] = "on"
 	})
 });
+var sliderBox = d3.select('body').append('div').attr("id", "sliderBox").append('center')
+
 
 var svg = d3.select("svg"),
     width = +svg.attr("width"),
@@ -59,7 +64,6 @@ var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 // Call zoom for svg container.
 svg.call(d3.zoom().on('zoom', zoomed));
-
 
 
 var simulation = this.force = d3.forceSimulation()
@@ -207,17 +211,22 @@ function addSlider(attribute, nodes, links, nGroups) {
 	var initValue = thresholds[attribute][2]
 
 	// A slider that removes nodes below the input threshold.
-	var slider = d3.select('body').append('p').append('center')
-	.text(thresholds[attribute][1]+' '+attribute+' for connection: ')
-	.style('font-size', '60%');
+	var slider = sliderBox.append('p')
+
+
+
+	slider
+		.text(thresholds[attribute][1]+' '+attribute+' for connection: ')
+		.style('font-size', '60%');
+
 
 	slider.attr('value', initValue)
 
 	slider.append('label')
-	.attr('id', "label"+attribute)
-	.attr('for', 'threshold')
-	.text(initValue).style('font-weight', 'bold')
-	.style('font-size', '120%');
+		.attr('id', "label"+attribute)
+		.attr('for', 'threshold')
+		.text(initValue).style('font-weight', 'bold')
+		.style('font-size', '120%');
 
 	slider.append('input')
 		.attr('type', 'range')
@@ -228,76 +237,104 @@ function addSlider(attribute, nodes, links, nGroups) {
 		.style('width', '50%')
 		.style('display', 'block')
 		.on('input', function () { 
+			updateThresholdValue(this, attribute, links, nGroups, nodes);
+		});
 
-console.log("input function")
-			var threshold = this.value;
+	var tick = slider.append('div');
+	tick.append('input')
+		.attrs({
+		'type': 'checkbox',
+		'name': 'cb'+attribute,
+		'tgt' : attribute,
+		'value': 'on',
+		})
+		.property("checked", true)
+		.on('change', function () { 
+			updateThresholdCheckboxes(this, attribute);
+		})
 
-			// Update label text
-			d3.select('#label'+attribute).text(threshold);
+	tick.append('label')
+		.attr("id", "#cbl"+attribute)
+		.text("On")
+}
 
-			// Find the links that are at or above the thresholds.
-			var newData = [];
-			links.forEach( function (d) {
-				container.select("#ep"+d.id).remove()
-				// Affect new threshold value for slider attribute
-				thresholds[attribute][2] = threshold
-				// testThresholds values -> consider link d
-				if(testThresholds(d))
-					newData.push(d)
-			});
-
-			// Data join with only those new links.
-			edgepaths = edgepaths.data(newData, 
-				function(d) { return d.source + ', ' + d.target;});
-			edgepaths.exit().remove();
-
-			var linkEnter = edgepaths.enter()
-				.insert('path',":first-child")
-				.attrs({
-					'class': 'edgepath',
-					'stroke': d => color(d.group+nGroups),
-					'stroke-width': function(d) { return edgesize(d[attribute]); },
-					'id': function (d) {return 'ep' + d.id},
-					'pointer-events': 'none'
-				})
-			
-			edgepaths = edgepaths.merge(linkEnter);
-
-			node = node.data(nodes);
-			// Restart simulation with new link data.
-			simulation
-				.nodes(nodes).on('tick', ticked)
-				.force("link").links(newData);
-				/* Edgelabels remains in DOM but are not anchored, they are invisible*/
-
-			simulation.alphaTarget(0.1).restart();
-	});
+function updateThresholdCheckboxes(source, attribute) {
+	source.value = source.checked? "on":"off" ;
+	d3.select('#cb'+attribute).text(source.checked? "On":"Off")
+	thresholdsCheckboxesValues[attribute] = source.checked
 }
 
 
-function testThresholds(link) {
-	if(thresholdsMergeOperator == OR) {
-		toInclude = false;
-		//Object.keys(obj).forEach(key => console.log(key, obj[key]))
-		Object.keys(thresholds).forEach(function (k) {
-			t = thresholds[k];
-			toInclTmp =
-				(t[1] == MIN && t[2] <= link[k]) ||
-				(t[1] == MAX && t[2] >= link[k]);
-			toInclude |= toInclTmp;
+function updateThresholdValue(source, attribute, links, nGroups, nodes) {
+	var threshold = source.value;
+	// Update label text
+	d3.select('#label' + attribute).text(threshold);
+
+
+
+	// Find the links that are at or above the thresholds.
+	var newData = [];
+	links.forEach(function (d) {
+		container.select("#ep" + d.id).remove();
+		// Affect new threshold value for slider attribute
+		thresholds[attribute][2] = threshold;
+		// testThresholds values -> consider link d
+		if (testThresholds(d))
+			newData.push(d);
 	});
-	} else if(thresholdsMergeOperator == AND) {
-		toInclude = true;
-		//Object.keys(obj).forEach(key => console.log(key, obj[key]))
-		Object.keys(thresholds).forEach(function (k) {
-			t = thresholds[k];
-			toInclTmp =
-				(t[1] == MIN && t[2] <= link[k]) ||
-				(t[1] == MAX && t[2] >= link[k]);
-			toInclude &= toInclTmp;
+
+	// Data join with only those new links.
+	edgepaths = edgepaths.data(newData,
+		function (d) { return d.source + ', ' + d.target; });
+	edgepaths.exit().remove();
+
+	var linkEnter = edgepaths.enter()
+		.insert('path', ":first-child")
+		.attrs({
+			'class': 'edgepath',
+			'stroke': d => color(d.group + nGroups),
+			'stroke-width': function (d) { return edgesize(d[attribute]); },
+			'id': function (d) { return 'ep' + d.id; },
+			'pointer-events': 'none'
 		});
-	}
+
+	edgepaths = edgepaths.merge(linkEnter);
+
+	node = node.data(nodes);
+	// Restart simulation with new link data.
+	simulation
+		.nodes(nodes).on('tick', ticked)
+		.force("link").links(newData);
+	/* Edgelabels remains in DOM but are not anchored, they are invisible*/
+	simulation.alphaTarget(0.1).restart();
+}
+
+function testThresholds(link) {
+	var toInclude = (thresholdsMergeOperator == AND) ? true : false;
+	//Object.keys(obj).forEach(key => console.log(key, obj[key]))
+	Object.keys(thresholds).forEach(function (k) {
+		t = thresholds[k];
+		if(thresholdsCheckboxesValues[k] ) {// Ticked box
+			toInclTmp =	testThresholdIn(t, k, link);	
+			switch (thresholdsMergeOperator) {
+				case AND:
+					toInclude &= toInclTmp;
+					break;
+				case OR:
+					toInclude |= toInclTmp; // OR SHOULD BE TESTED BETTER @TODO
+					break;
+				default:
+					console.log("thresholdMergeOperator '"+thresholdsMergeOperator+"' invalid.")
+					break;
+			}
+		}
+	});
 	return toInclude;
+
+	function testThresholdIn(t, k, link) {
+		return (t[1] == MIN && t[2] <= link[k]) ||
+			   (t[1] == MAX && t[2] >= link[k]);
+	}
 }
 
 function addlegend(legendNames){
