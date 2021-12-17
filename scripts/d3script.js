@@ -38,7 +38,6 @@ d3.json("data/thresholds.json", function(data) {
 });
 var sliderBox = d3.select('body').append('div').attr("id", "sliderBox").append('center')
 
-
 var svg = d3.select("svg"),
     width = +svg.attr("width"),
     height = +svg.attr("height"),
@@ -91,20 +90,16 @@ d3.json(dataPath, function(error, graph) {
 
 	links = graph.links;
 	nodes = graph.nodes;
-
 	
-	edgesize = getLinearScale(nodes, CIRCLE_SIZE[0], CIRCLE_SIZE[1]);
+	edgesize = getEdgeSizeLinearScale(nodes, CIRCLE_SIZE[0], CIRCLE_SIZE[1]);
 	linkedByIndex = getLinkageByIndex(links);
 	// A function to test if two nodes are neighboring.
-
 
 	/** Counting groups, for color rendering **/
 		var tmp = buildLegend(nodes, links);
 		var legendNames = tmp[0];
 		nGroups = tmp[1];
 		lGroups = tmp[2];
-	/** END ocunting groups **/
-
 
 	/** Connect Source/Targets of connections with their IDs */
 	/**  modify the graph.links with source_id and target_id */
@@ -183,20 +178,17 @@ d3.json(dataPath, function(error, graph) {
 	
 	node.append("title")
 		.text(d => d.name);
-	
 		
 /***  SLIDERS and LEGEND  ***/
 	Object.keys(thresholds).forEach(function (e) {
 		addSlider(e, nodes, links, nGroups);
 	})
 	addlegend(legendNames);
-   
 		
 /***  Simulation update  ***/
 	simulation
 		.nodes(nodes)
 		.on("tick", ticked);
-
 			
 	simulation
 		.force("link")
@@ -206,29 +198,28 @@ d3.json(dataPath, function(error, graph) {
 	 	.force("collide", d3.forceCollide().radius( function (d) { return edgesize(d.size); }));
 });
 
+// A slider that removes nodes below/above the input threshold.
 function addSlider(attribute, nodes, links, nGroups) {
 
 	var initValue = thresholds[attribute][2]
 
 	// A slider that removes nodes below the input threshold.
-	var slider = sliderBox.append('p')
-
-
-
-	slider
-		.text(thresholds[attribute][1]+' '+attribute+' for connection: ')
+	var slider = sliderBox
+		.append('div')
 		.style('font-size', '60%');
 
+	var p = slider.append("p")
 
-	slider.attr('value', initValue)
+	p.append("label")
+		.text("   "+thresholds[attribute][1]+' '+attribute+' for connection: ')
 
-	slider.append('label')
+	p.append('label')
 		.attr('id', "label"+attribute)
 		.attr('for', 'threshold')
 		.text(initValue).style('font-weight', 'bold')
 		.style('font-size', '120%');
 
-	slider.append('input')
+	p.append('input')
 		.attr('type', 'range')
 		.attr('min', d3.min(links, function(d) {return d[attribute]; }))
 		.attr('max', d3.max(links, function(d) {return d[attribute]; }))
@@ -237,40 +228,35 @@ function addSlider(attribute, nodes, links, nGroups) {
 		.style('width', '50%')
 		.style('display', 'block')
 		.on('input', function () { 
-			updateThresholdValue(this, attribute, links, nGroups, nodes);
+			updateThresholdValue(this.value, attribute, links, nGroups, nodes);
 		});
 
-	var tick = slider.append('div');
-	tick.append('input')
+p.insert('input', ":first-child")
 		.attrs({
-		'type': 'checkbox',
-		'name': 'cb'+attribute,
-		'tgt' : attribute,
-		'value': 'on',
+			'type': 'checkbox',
+			'id': 'cb'+attribute,
+			'value': 'on',
 		})
 		.property("checked", true)
 		.on('change', function () { 
-			updateThresholdCheckboxes(this, attribute);
+			updateThresholdCheckboxes(this.checked, attribute);
 		})
-
-	tick.append('label')
-		.attr("id", "#cbl"+attribute)
-		.text("On")
 }
 
-function updateThresholdCheckboxes(source, attribute) {
-	source.value = source.checked? "on":"off" ;
-	d3.select('#cb'+attribute).text(source.checked? "On":"Off")
-	thresholdsCheckboxesValues[attribute] = source.checked
+function updateThresholdCheckboxes(checked, attribute) {
+	d3.select('#cb'+attribute).attr("value", checked? "on":"off")
+	thresholdsCheckboxesValues[attribute] = checked
+	if(checked) {
+		d3.select("#threshold"+attribute).attr("disabled", null)
+	} else {
+		d3.select("#threshold"+attribute).attr("disabled", "disabled")
+	}
 }
 
-
-function updateThresholdValue(source, attribute, links, nGroups, nodes) {
-	var threshold = source.value;
+function updateThresholdValue(value, attribute, links, nGroups, nodes) {
+	var threshold = value;
 	// Update label text
 	d3.select('#label' + attribute).text(threshold);
-
-
 
 	// Find the links that are at or above the thresholds.
 	var newData = [];
@@ -434,7 +420,7 @@ function showError(datapath) {
 }
 
 // Linear scale for degree centrality. WITH SIZE
-function  getLinearScale(nodes, min, max) {
+function  getEdgeSizeLinearScale(nodes, min, max) {
 	return d3.scaleLinear()
 		.domain([d3.min(nodes, function(d) {return d.size; }),d3.max(nodes, function(d) {return d.size; })])
 		.range([min,max]);
