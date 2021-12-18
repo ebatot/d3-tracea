@@ -149,9 +149,9 @@ d3.json(dataPath, function(error, graph) {
 		.append("g")
 		.attr("class", "node")
 		.call(d3.drag()
-			.on("start", dragstarted)
-			.on("drag", dragged)
-			.on("end", dragended)
+			.on("start", dragstartedOnNode)
+			.on("drag", draggedOnNode)
+			.on("end", dragendedOnNode)
 		);
 	
 	node.append("circle")
@@ -168,18 +168,16 @@ d3.json(dataPath, function(error, graph) {
 		})
 		.on('click', function(d, i) {
 			if (d3.event.ctrlKey) {
+				// Ctrl down and not shift on a selected shape
 				if(nodeSelection.includes(d)) {
-					//nodeSelection.removes(d)
-					const index = nodeSelection.indexOf(d);
-					if (index > -1) {
-						nodeSelection.splice(index, 1);
-					}
-					d3.select('#n'+d.id).attr('stroke-width', "1.0")
-				} else {
-					nodeSelection.push(d)
-					d3.select('#n'+d.id).attr('stroke-width', "3.0")	
+					addNodeToSelection(d);
+				} else { //shift, or not selected
+					removeNodeFromSelection(d);	
 				}
 			}
+			/*if(d3.event.shiftKey) {
+				selectNode(d)
+			}*/
 			d3.event.stopPropagation();
 		})
 			
@@ -213,6 +211,24 @@ d3.json(dataPath, function(error, graph) {
 	simulation
 	 	.force("collide", d3.forceCollide().radius( function (d) { return edgesize(d.size); }));
 });
+
+function selectNode(d) {
+	nodeSelection = []
+	nodeSelection.push(d)
+}
+
+function removeNodeFromSelection(d) {
+	nodeSelection.push(d);
+	d3.select('#n' + d.id).attr('stroke-width', "3.0");
+}
+
+function addNodeToSelection(d) {
+	const index = nodeSelection.indexOf(d);
+	if (index > -1) {
+		nodeSelection.splice(index, 1);
+	}
+	d3.select('#n' + d.id).attr('stroke-width', "1.0");
+}
 
 // A slider that removes nodes below/above the input threshold.
 function addSlider(attribute, nodes, links, nGroups) {
@@ -386,7 +402,7 @@ function ticked() {
 
 	node
 		.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-	// node.attr("transform", d => "translate(" + d.x + "," + d.y + ")");
+		// node.attr("transform", d => "translate(" + d.x + "," + d.y + ")");
 		
 		
 	edgepaths.attr('d', function (d) {
@@ -406,40 +422,52 @@ function ticked() {
 	});	
 }
 
-
-function dragstarted(d) {
- if (!d3.event.active) simulation.alphaTarget(0.1).restart();
-	/*if(nodeSelection.length > 0) {
-		nodeSelection.forEach(function (dd) {
-			dd.fx = dd.x;
-			dd.fy = dd.y;
-		})
-	} else { */
-		d.fx = d.x;
-		d.fy = d.y;
-	//}
-
-}
-
-function dragged(d) {
-	if (!d3.event.active) simulation.alphaTarget(0.1).restart();
-	/* if(nodeSelection.length > 0) {
-		nodeSelection.forEach(function (dd) {
-			//Translation
-			//@TODO
-			dd.fx = d3.event.x;
-			dd.fy = d3.event.y;
+function dragstartedOnNode(d) {
+	if (!event.shiftKey && nodeSelection.includes(d)) {
+		if (!d3.event.active) simulation.alphaTarget(0.1).restart();
+		nodeSelection.forEach(function (d) {
+			d.fx = d.x;
+			d.fy = d.y;
 		})
 	} else {
-		d.fx = d3.event.x;
-		d.fy = d3.event.y;
-	} */
-
-	d.fx = d3.event.x;
-	d.fy = d3.event.y;
+		sourceX = d.fx
+		sourceY = d.fy
+		if (!d3.event.active) simulation.alphaTarget(0.1).restart();
+		d.fx = d.x;
+		d.fy = d.y;
+	}
 }
 
-function dragended(d) {
+function draggedOnNode(d) {
+	// Click in a selected shape or SHIFT key id down
+	if (!event.shiftKey && nodeSelection.includes(d)) {
+		// Move all selected shape
+		console.log(" - ---"+nodeSelection.length + "- - - "+d.name)
+		if (!d3.event.active) simulation.alphaTarget(0.1).restart();
+		sourceX = d.fx
+		sourceY = d.fy
+		d.fx = d3.event.x;
+		d.fy = d3.event.y;
+		diffX = sourceX - d.fx
+		diffY = sourceY - d.fy
+		//log.text(nodeSelection)
+		nodeSelection.forEach(function (dd) {
+			if(dd != d) {
+				dd.x = dd.x - diffX
+				dd.y = dd.y - diffY
+				dd.fx = dd.fx - diffX
+				dd.fy = dd.fy - diffY
+			}
+		})
+// Click in unselected shape, or SHIFT is down 
+} else {
+		// Move the shape under pointer only
+		d.fx = d3.event.x;
+		d.fy = d3.event.y;
+	}
+}
+
+function dragendedOnNode(d) {
 	if (!d3.event.active && !stopMoving) simulation.alphaTarget(0);
 	//d.fx = null;
 	//d.fy = null;
