@@ -364,7 +364,7 @@ function addlegend(legendNamesNodes, legendNamesLinks) {
 	legend
 		.attrs({
 			"width": 180,
-			"height": (nGroups + lGroups) * 20,
+			"height": (nGroups + lGroups + 1) * 20,
 			"position": "absolute",
 			"top": "10px",
 			"right": "10px"
@@ -373,6 +373,8 @@ function addlegend(legendNamesNodes, legendNamesLinks) {
 	var legendNodes = addlegendNodes(legend, legendNamesNodes);
 	var legendLinks = addlegendLinks(legend, legendNamesLinks);
 }
+
+
 
 function addlegendNodes(legend, legendNamesNodes){
 	// add a legend
