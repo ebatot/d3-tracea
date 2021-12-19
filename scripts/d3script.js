@@ -175,9 +175,10 @@ d3.json(dataPath, function(error, graph) {
 				} else { //shift, or not selected
 					removeNodeFromSelection(d);	
 				}
+			} else {
+				selectNode(d)
 			}
 			/*if(d3.event.shiftKey) {
-				selectNode(d)
 			}*/
 			d3.event.stopPropagation();
 		})
@@ -234,8 +235,10 @@ d3.json(dataPath, function(error, graph) {
 });
 
 function selectNode(d) {
+	nodeSelection.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "1.0"))
 	nodeSelection = []
 	nodeSelection.push(d)
+	d3.select('#n' + d.id).attr('stroke-width', "3.0");
 }
 
 function removeNodeFromSelection(d) {
