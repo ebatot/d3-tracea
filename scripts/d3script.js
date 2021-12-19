@@ -16,6 +16,14 @@
 var log = d3.select("body").select("center").append("label").style('color', '#900').attr("id", "logger")
 .text("Logger");
 
+
+var showImages = false
+var imgs = [
+	{"type":"Component", "img": "trotting.png"}, 
+	{"type":"Feature", "img":  "monster.png"}, 
+	{"type":"Requirement", "img":  "icons-72.png"}
+]
+
 var CIRCLE_SIZE = [20, 10];
 var LEGEND_GAP = 120; //legend start from top
 var moving = true;
@@ -159,6 +167,7 @@ d3.json(dataPath, function(error, graph) {
 		.attrs({
 			'id':  d => 'n'+ d.id,
 			'class': 'node',
+			'type': d=> d.type,
 			'cx': d => d.x,
 			'cy': d => d.y,
 			// Use degree centrality from R igraph in json.
@@ -200,6 +209,8 @@ d3.json(dataPath, function(error, graph) {
 		addSlider(e, nodes, links, nGroups);
 	})
 	addlegend(legendNamesNodes, legendNamesLinks)
+	if(showImages)
+		addIconsToLegend()
 
 /***  Simulation update  ***/
 	simulation
@@ -362,6 +373,45 @@ function testThresholds(link) {
 	}
 }
 
+function addIconsToLegend() {
+
+	/*
+
+					Not working, ON TRIAL !
+
+
+	*/
+
+	console.log("addIconsToLegend")
+    // add photos to all legend names except two
+	
+    var imgPath = './imgs/icons/'
+    imgs.forEach(function (i) {
+		node.filter(x => x.type === i.type)
+            .append("defs")
+            .append("pattern")
+            .attr('id', d => 'image-' + i.type)
+            .attr('patternUnits', 'userSpaceOnUse')
+            .attr('x', d => -edgesize(d.size)/2)
+            .attr('y', d => -edgesize(d.size)/2)
+            .attr('height', d => edgesize(d.size))
+            .attr('width', d => edgesize(d.size))
+            .append("image")
+            .attr('xlink:href', d => imgPath + i.img.toLowerCase() )
+			
+		container.selectAll("circle.node")
+			.filter(function() {
+				return d3.select(this).attr("type") == i.type; // filter by single attribute
+			})
+			.attr('r', d => 0.9 * edgesize(d.size))
+			.attr('fill', d => 'url(#image-' + i.type + ')')
+			.attr("stroke-width", d => nodeSelection.includes(d)?"3.0":"1.0")
+		})
+		
+			
+}
+
+
 function addlegend(legendNamesNodes, legendNamesLinks) {
 	var legend = d3.select("#legend").append("svg");
 	legend
@@ -376,8 +426,6 @@ function addlegend(legendNamesNodes, legendNamesLinks) {
 	var legendNodes = addlegendNodes(legend, legendNamesNodes);
 	var legendLinks = addlegendLinks(legend, legendNamesLinks);
 }
-
-
 
 function addlegendNodes(legend, legendNamesNodes){
 	// add a legend
