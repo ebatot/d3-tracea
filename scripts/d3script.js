@@ -199,27 +199,7 @@ d3.json(dataPath, function(error, graph) {
 	Object.keys(thresholds).forEach(function (e) {
 		addSlider(e, nodes, links, nGroups);
 	})
-
-	var legend = d3.select("#legend").append("svg")
-	legend
-		.attrs({
-			"width":    180,
-			"height":   (nGroups+lGroups) * 20,
-			"position": "absolute",
-			"top":      "10px",
-			"right":    "10px"
-		})
-	
-	
-	
-	
-	var legendNodes = addlegendNodes(legend, legendNamesNodes);
-	var legendLinks = addlegendLinks(legend, legendNamesLinks);
-
-
-		
-
-
+	addlegend(legendNamesNodes, legendNamesLinks)
 
 /***  Simulation update  ***/
 	simulation
@@ -377,6 +357,21 @@ function testThresholds(link) {
 		return (t[1] == MIN && t[2] <= link[k]) ||
 			   (t[1] == MAX && t[2] >= link[k]);
 	}
+}
+
+function addlegend(legendNamesNodes, legendNamesLinks) {
+	var legend = d3.select("#legend").append("svg");
+	legend
+		.attrs({
+			"width": 180,
+			"height": (nGroups + lGroups) * 20,
+			"position": "absolute",
+			"top": "10px",
+			"right": "10px"
+		});
+
+	var legendNodes = addlegendNodes(legend, legendNamesNodes);
+	var legendLinks = addlegendLinks(legend, legendNamesLinks);
 }
 
 function addlegendNodes(legend, legendNamesNodes){
