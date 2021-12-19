@@ -98,7 +98,7 @@ d3.json(dataPath, function(error, graph) {
 	// A function to test if two nodes are neighboring.
 
 	/** Counting groups, for color rendering **/
-		var tmp = buildLegend(nodes, links);
+		var tmp = buildLegendNames(nodes, links);
 		var legendNames = tmp[0];
 		nGroups = tmp[1];
 		lGroups = tmp[2];
@@ -442,7 +442,6 @@ function draggedOnNode(d) {
 	// Click in a selected shape or SHIFT key id down
 	if (!event.shiftKey && nodeSelection.includes(d)) {
 		// Move all selected shape
-		console.log(" - ---"+nodeSelection.length + "- - - "+d.name)
 		if (!d3.event.active) simulation.alphaTarget(0.1).restart();
 		sourceX = d.fx
 		sourceY = d.fy
@@ -530,7 +529,7 @@ function getUrlVars() {
     return vars;
 }
 
-function buildLegend(nodes, links){
+function buildLegendNames(nodes, links){
 	// load legend names from type column
 	var legendNames = [];
 	var map = new Map();
