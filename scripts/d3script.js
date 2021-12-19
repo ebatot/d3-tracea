@@ -40,8 +40,8 @@ var sliderBox = d3.select('body').append('div').attr("id", "sliderBox").append('
 
 var nodeSelection = []
 
-var svg = d3.select("svg"),
-    width = +svg.attr("width"),
+var svg =    d3.select("svg"),
+    width =  +svg.attr("width"),
     height = +svg.attr("height"),
 	link,
 	links,
@@ -49,8 +49,8 @@ var svg = d3.select("svg"),
 	edgelabels,
 	edgepaths,
 	edgesize,
-	nGroups,
-	lGroups,
+	legendNamesNodes, nGroups,
+	legendNamesLinks, lGroups,
 	linkedByIndex;
 var container = svg.append('g');
 
@@ -61,7 +61,8 @@ svg.on('click', function(d, i) {
 	stopMoving();
 });
 
-var color = d3.scaleOrdinal(d3.schemeCategory20);
+var colorNodes = d3.scaleOrdinal(d3.schemeCategory20);
+var colorLinks = d3.scaleOrdinal(d3.schemeCategory20.slice(6));
 
 // Call zoom for svg container.
 svg.call(d3.zoom().on('zoom', zoomed));
@@ -98,11 +99,11 @@ d3.json(dataPath, function(error, graph) {
 	// A function to test if two nodes are neighboring.
 
 	/** Counting groups, for color rendering **/
-		var tmp = buildLegendNames(nodes, links);
-		var legendNames = tmp[0];
-		nGroups = tmp[1];
-		lGroups = tmp[2];
-
+	legendNamesNodes = buildLegendNames(nodes);
+	legendNamesLinks = buildLegendNames(links);
+	nGroups = legendNamesNodes.length;
+	lGroups = legendNamesLinks.length;
+	
 	/** Connect Source/Targets of connections with their IDs */
 	/**  modify the graph.links with source_id and target_id */
 	links.forEach(function(e) { 
@@ -119,11 +120,11 @@ d3.json(dataPath, function(error, graph) {
 		.append('path')
 		.attrs({
 			'class': 'edgepath',
-			'stroke': d => color(d.group+nGroups),
+			'stroke': d => colorLinks(d.group), 
 			'stroke-width': function(d) { return edgesize(d.confidence); },
 			'id': function (d) {return 'ep' + d.id},
 			'pointer-events': 'none'
-		})
+		})		
 
 	edgelabels = gLines.selectAll(".edgelabel")
 		.data(links)
@@ -163,7 +164,7 @@ d3.json(dataPath, function(error, graph) {
 			// Use degree centrality from R igraph in json.
 			'r': function(d, i) { return edgesize(d.size); },
 			// Color by group, a result of modularity calculation in R igraph.
-			"fill": function(d) { return color(d.group); },
+			"fill": function(d) { return colorNodes(d.group); },
 			'stroke-width': '1.0'
 		})
 		.on('click', function(d, i) {
@@ -180,7 +181,10 @@ d3.json(dataPath, function(error, graph) {
 			}*/
 			d3.event.stopPropagation();
 		})
-			
+
+		console.log(colorNodes.domain())
+		console.log(colorLinks.domain())
+
 	node.append("text")
 		.text(function (d) { return d.name; })
 		.style("text-anchor", "top middle")
@@ -197,8 +201,28 @@ d3.json(dataPath, function(error, graph) {
 	Object.keys(thresholds).forEach(function (e) {
 		addSlider(e, nodes, links, nGroups);
 	})
-	addlegend(legendNames);
+
+	var legend = d3.select("#legend").append("svg")
+	legend
+		.attrs({
+			"width":    180,
+			"height":   (nGroups+lGroups) * 20,
+			"position": "absolute",
+			"top":      "10px",
+			"right":    "10px"
+		})
+	
+	
+	
+	
+	var legendNodes = addlegendNodes(legend, legendNamesNodes);
+	var legendLinks = addlegendLinks(legend, legendNamesLinks);
+
+
 		
+
+
+
 /***  Simulation update  ***/
 	simulation
 		.nodes(nodes)
@@ -263,7 +287,7 @@ function addSlider(attribute, nodes, links, nGroups) {
 			updateThresholdValue(this.value, attribute, links, nGroups, nodes);
 		});
 
-p.insert('input', ":first-child")
+	p.insert('input', ":first-child")
 		.attrs({
 			'type': 'checkbox',
 			'id': 'cb'+attribute,
@@ -310,7 +334,7 @@ function updateThresholdValue(value, attribute, links, nGroups, nodes) {
 		.insert('path', ":first-child")
 		.attrs({
 			'class': 'edgepath',
-			'stroke': d => color(d.group + nGroups),
+			'stroke': d => colorLinks(d.group + nGroups),
 			'stroke-width': function (d) { return edgesize(d[attribute]); },
 			'id': function (d) { return 'ep' + d.id; },
 			'pointer-events': 'none'
@@ -355,42 +379,72 @@ function testThresholds(link) {
 	}
 }
 
-function addlegend(legendNames){
+function addlegendNodes(legend, legendNamesNodes){
 	// add a legend
-	var legend = d3.select("#legend")
+	var legendNodes = legend
 		.append("svg")
 		.attr("class", "legend")
+		.attr("id", "#legendNodes")
 		.attr("width", 180)
-		.attr("height", (LEGEND_GAP + (legendNames.length * 20)))
+		.attr("height", (legendNamesNodes.length * 20))
 		.selectAll("g")
-		.data(color.domain())
+		.data(colorNodes.domain())
 		.enter()
 		.append("g")
 		.attr("transform", function(d, i) {
-		return "translate(0," + (LEGEND_GAP + i * 20) + ")";
-		});
+				return "translate(0," + (i * 20) + ")";
+			});
 
-	legend.append("rect")
+	legendNodes.append("rect")
 		.attr("width", 18)
 		.attr("height", 18)
-		.style("fill", color);
+		.style("fill", colorNodes);
 
 	// append text to legends
-	legend.append("text")
-		.data(color.domain())
+	legendNodes.append("text")
+		.data(colorNodes.domain())
 		.attr("x", 24)
 		.attr("y", 9)
 		.attr("dy", ".35em")
-		.text(function(d) {	return legendNames.find(x => x.id === d).type; })
+		.text(function(d) { return legendNamesNodes.find(x => x.id === d).type; })
 		.style('font-size', 10);
-		
-	legend.append("text")
-		.append("button")
-		.attr("type", "stopButton")
-		.on("click", stopMoving)
-		.text("Stop moving !");
 
-		return legend;
+		return legendNodes;
+}
+
+function addlegendLinks(legend, legendNamesLinks){
+	// add a legend
+	var legendLinks = legend
+		.append("svg")
+		.attr("class", "legend")
+		.attr("id", "#legendLinks")
+		.attr("width", 180)
+		.attr("height", legendNamesLinks.length * 20 )
+		//Offset to show link legend below node legend
+		.attr("transform", "translate(0," +((nGroups + 1) * 20) + ")")
+		.selectAll("g")
+		.data(colorLinks.domain())
+		.enter()
+		.append("g")
+		.attr("transform", function(d, i) {
+				return "translate(0," + (i * 20) + ")";
+			});
+
+	legendLinks.append("rect")
+		.attr("width", 18)
+		.attr("height", 18)
+		.style("fill", colorLinks);
+
+	// append text to legends
+	legendLinks.append("text")
+		.data(colorLinks.domain())
+		.attr("x", 24)
+		.attr("y", 9)
+		.attr("dy", ".35em")
+		.text(function(d) { return legendNamesLinks.find(x => x.id === (d)).type; })
+		.style('font-size', 10);
+
+		return legendLinks;
 }
 
 function ticked() {
@@ -528,36 +582,21 @@ function getUrlVars() {
     });
     return vars;
 }
-
-function buildLegendNames(nodes, links){
+function buildLegendNames(nodes){
 	// load legend names from type column
 	var legendNames = [];
 	var map = new Map();
-	var i = 0; // Fill up th i to continue counting when legending the links.
 	for (var item of nodes) {
 		if(!map.has(item.group)){
 			map.set(item.group, true);    // set any value to Map
 			legendNames.push({
 				id: item.group,
-				type: item.type //item.type vs label_data //TODO
-			});
-			i = i+1;
-		}
-	}
-	var nGroups = legendNames.length; //Number of groups of nodes
-
-	var map = new Map();
-	for (var item of links) {
-		if(!map.has(item.group + i)){
-			map.set(item.group + i, true);    // set any value to Map
-			legendNames.push({
-				id: item.group + i,
 				type: item.type 
 			});
 		}
 	}
-	var lGroups = nGroups - legendNames.length; // Number of groups of links
-	return [legendNames,nGroups,lGroups];
+	legendNames.sort( function( a, b ) { return a.id - b.id });
+	return legendNames;
 }
 
 function stopMoving() {
