@@ -215,15 +215,18 @@ d3.json(dataPath, function(error, graph) {
 });
 
 function selectNode(d) {
-	nodeSelection.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "1.0"))
 	nodeSelection = []
 	nodeSelection.push(d)
-	d3.select('#n' + d.id).attr('stroke-width', "3.0");
+	updateVisualNodeSelection()
 }
 
 function removeNodeFromSelection(d) {
 	nodeSelection.push(d);
-	d3.select('#n' + d.id).attr('stroke-width', "3.0");
+	updateVisualNodeSelection()
+}
+function updateVisualNodeSelection(){
+	nodes.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "1.0"))
+	nodeSelection.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "3.0"))
 }
 
 function addNodeToSelection(d) {
@@ -231,7 +234,7 @@ function addNodeToSelection(d) {
 	if (index > -1) {
 		nodeSelection.splice(index, 1);
 	}
-	d3.select('#n' + d.id).attr('stroke-width', "1.0");
+	updateVisualNodeSelection()
 }
 
 // A slider that removes nodes below/above the input threshold.
