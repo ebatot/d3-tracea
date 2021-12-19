@@ -182,9 +182,6 @@ d3.json(dataPath, function(error, graph) {
 			d3.event.stopPropagation();
 		})
 
-		console.log(colorNodes.domain())
-		console.log(colorLinks.domain())
-
 	node.append("text")
 		.text(function (d) { return d.name; })
 		.style("text-anchor", "top middle")
