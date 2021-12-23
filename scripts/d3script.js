@@ -328,7 +328,7 @@ function updateThresholdValue(value, attribute, links, nGroups, nodes) {
 		.insert('path', ":first-child")
 		.attrs({
 			'class': 'edgepath',
-			'stroke': d => colorLinks(d.group + nGroups),
+			'stroke': d => colorLinks(d.group),
 			'stroke-width': function (d) { return edgesize(d[attribute]); },
 			'id': function (d) { return 'ep' + d.id; },
 			'pointer-events': 'none'
