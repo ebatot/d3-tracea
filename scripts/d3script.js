@@ -413,16 +413,19 @@ function addIconsToLegend() {
 
 
 function addlegend(legendNamesNodes, legendNamesLinks) {
-	var legend = d3.select("#legend").append("svg");
+	var legend = d3.select("#legend");
 	legend
 		.attrs({
-			"width": 180,
-			"height": (nGroups + lGroups + 1) * 20,
 			"position": "absolute",
 			"top": "10px",
 			"right": "10px"
-		});
-
+		})
+		
+	legend = legend.append("svg")
+		.attrs({
+			"width": 180,
+			"height": (nGroups + lGroups + 2) * 20
+		})
 	var legendNodes = addlegendNodes(legend, legendNamesNodes);
 	var legendLinks = addlegendLinks(legend, legendNamesLinks);
 }
@@ -467,7 +470,7 @@ function addlegendLinks(legend, legendNamesLinks){
 		.attr("class", "legend")
 		.attr("id", "#legendLinks")
 		.attr("width", 180)
-		.attr("height", legendNamesLinks.length * 20 )
+		.attr("height", (legendNamesLinks.length +1) * 20 )
 		//Offset to show link legend below node legend
 		.attr("transform", "translate(0," +((nGroups + 1) * 20) + ")")
 		.selectAll("g")
