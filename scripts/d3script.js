@@ -418,17 +418,28 @@ function addIconsToLegend() {
 function addlegend(legendNamesNodes, legendNamesLinks) {
 	var legend = d3.select("#legend");
 	legend
-		.attrs({
-			"position": "absolute",
-			"top": "10px",
-			"right": "10px"
-		})
+	.attrs({
+		"position": "absolute"
+	})
+	.style("top","10px")
+	.style("right","10px")
+	.style("border", "1px rgb(54, 2, 2) solid")
+	
+	.append("div").text("Legend")
+		.attr("id", "legendHeader")
+		.style("background-color", "rgb(205 190 205)")
+		.style("cursor", "move")
+		.style("font-weight", "bold")
+
+	dragElement(document.getElementById('legend'))
+	
 		
 	legend = legend.append("svg")
 		.attrs({
 			"width": 180,
-			"height": (nGroups + lGroups + 2) * 20
+			"height": (nGroups + lGroups + 1) * 20
 		})
+		.style("background-color", "rgb(225 210 225)")
 	var legendNodes = addlegendNodes(legend, legendNamesNodes);
 	var legendLinks = addlegendLinks(legend, legendNamesLinks);
 }
@@ -575,9 +586,7 @@ function draggedOnNode(d) {
 }
 
 function dragendedOnNode(d) {
-	if (!d3.event.active && !stopMoving) simulation.alphaTarget(0);
-	//d.fx = null;
-	//d.fy = null;
+	stopMoving()
 }
 
 function showError(datapath) {
@@ -655,4 +664,46 @@ function buildLegendNames(nodes){
 
 function stopMoving() {
 	force.stop();
+}
+
+function dragElement(elmnt) {
+	var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+	if (document.getElementById(elmnt.id + "Header")) {
+		// if present, the header is where you move the DIV from:
+		document.getElementById(elmnt.id + "Header").onmousedown = dragMouseDown;
+	} else {
+		// otherwise, move the DIV from anywhere inside the DIV:
+		elmnt.onmousedown = dragMouseDown;
+	}
+
+	function dragMouseDown(e) {
+		e = e || window.event;
+		e.preventDefault();
+		// get the mouse cursor position at startup:
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+		document.onmouseup = closeDragElement;
+		// call a function whenever the cursor moves:
+		document.onmousemove = elementDrag;
+	}
+
+	function elementDrag(e) {
+		e = e || window.event;
+		e.preventDefault();
+		// calculate the new cursor position:
+		pos1 = pos3 - e.clientX;
+		pos2 = pos4 - e.clientY;
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+		// set the element's new position:
+		elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+		elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+		elmnt.style.right = null;
+	}
+
+	function closeDragElement() {
+		// stop moving when mouse button is released:
+		document.onmouseup = null;
+		document.onmousemove = null;
+	}
 }
