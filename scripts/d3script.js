@@ -235,6 +235,7 @@ function removeNodeFromSelection(d) {
 	nodeSelection.push(d);
 	updateVisualNodeSelection()
 }
+
 function updateVisualNodeSelection(){
 	nodes.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "1.0"))
 	nodeSelection.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "3.0"))
@@ -301,6 +302,8 @@ function updateThresholdCheckboxes(checked, attribute) {
 	} else {
 		d3.select("#threshold"+attribute).attr("disabled", "disabled")
 	}
+	value = d3.select('#label' + attribute).text()
+	updateThresholdValue(value, attribute, links, nGroups, nodes)
 }
 
 function updateThresholdValue(value, attribute, links, nGroups, nodes) {
