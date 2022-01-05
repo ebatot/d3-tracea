@@ -18,6 +18,8 @@ var log = d3.select("body").select("center").append("label").style('color', '#90
 
 
 var showImages = false
+var SORT_LEGEND = true
+
 var imgs = [
 	{"type":"Component", "img": "trotting.png"}, 
 	{"type":"Feature", "img":  "monster.png"}, 
@@ -44,7 +46,25 @@ d3.json("data/thresholds.json", function(data) {
 		thresholdsCheckboxesValues[k] = "on"
 	})
 });
-var sliderBox = d3.select('body').append('div').attr("id", "sliderBox").append('center')
+sliderBox = d3.select('body')
+	.append('div')
+		.attr("id", "sliderBox")
+		.style("border", '1px rgb(54, 2, 2) solid')
+		.style("position", 'absolute')
+		.style('right', '10px')
+		.style('top', '10px')
+		.style('width', '200px')
+		.style("background-color", "rgb(225 210 225)")
+
+sliderBox.append('div')
+		.text(' Thresholds')	
+		.attr('id', 'sliderBoxHeader')
+		.style("background-color", "rgb(205 190 205)")
+		.style("cursor", "move")
+		.style("font-weight", "bold")
+
+dragElement(document.getElementById('sliderBox'))
+	
 
 var nodeSelection = []
 
@@ -205,6 +225,7 @@ d3.json(dataPath, function(error, graph) {
 		.text(d => d.name);
 		
 /***  SLIDERS and LEGEND  ***/
+	//var sliderBox = d3.select('body').append('div').attr("id", "sliderBox").append('center')
 	Object.keys(thresholds).forEach(function (e) {
 		addSlider(e, nodes, links, nGroups);
 	})
@@ -225,39 +246,14 @@ d3.json(dataPath, function(error, graph) {
 	 	.force("collide", d3.forceCollide().radius( function (d) { return edgesize(d.size); }));
 });
 
-function selectNode(d) {
-	nodeSelection = []
-	nodeSelection.push(d)
-	updateVisualNodeSelection()
-}
-
-function removeNodeFromSelection(d) {
-	nodeSelection.push(d);
-	updateVisualNodeSelection()
-}
-
-function updateVisualNodeSelection(){
-	nodes.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "1.0"))
-	nodeSelection.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "3.0"))
-}
-
-function addNodeToSelection(d) {
-	const index = nodeSelection.indexOf(d);
-	if (index > -1) {
-		nodeSelection.splice(index, 1);
-	}
-	updateVisualNodeSelection()
-}
-
 // A slider that removes nodes below/above the input threshold.
 function addSlider(attribute, nodes, links, nGroups) {
-
 	var initValue = thresholds[attribute][2]
 
 	// A slider that removes nodes below the input threshold.
 	var slider = sliderBox
 		.append('div')
-		.style('font-size', '60%');
+		.style('font-size', '60%')
 
 	var p = slider.append("p")
 
@@ -276,7 +272,7 @@ function addSlider(attribute, nodes, links, nGroups) {
 		.attr('max', d3.max(links, function(d) {return d[attribute]; }))
 		.attr('value', initValue)
 		.attr('id', 'threshold'+attribute)
-		.style('width', '50%')
+		.style('width', '100%')
 		.style('display', 'block')
 		.on('input', function () { 
 			updateThresholdValue(this.value, attribute, links, nGroups, nodes);
@@ -379,14 +375,11 @@ function testThresholds(link) {
 function addIconsToLegend() {
 
 	/*
+	 *				Not working, ON TRIAL !
+	 */
 
-					Not working, ON TRIAL !
-
-
-	*/
-
-	console.log("addIconsToLegend")
-    // add photos to all legend names except two
+	console.log("addIconsToLegend " + edgesize(100))
+    // add photos to legend names except
 	
     var imgPath = './imgs/icons/'
     imgs.forEach(function (i) {
@@ -395,8 +388,8 @@ function addIconsToLegend() {
             .append("pattern")
             .attr('id', d => 'image-' + i.type)
             .attr('patternUnits', 'userSpaceOnUse')
-            .attr('x', d => -edgesize(d.size)/2)
-            .attr('y', d => -edgesize(d.size)/2)
+           // .attr('x', d => -edgesize(d.size)/2)
+           // .attr('y', d => -edgesize(d.size)/2)
             .attr('height', d => edgesize(d.size))
             .attr('width', d => edgesize(d.size))
             .append("image")
@@ -410,18 +403,17 @@ function addIconsToLegend() {
 			.attr('fill', d => 'url(#image-' + i.type + ')')
 			.attr("stroke-width", d => nodeSelection.includes(d)?"3.0":"1.0")
 		})
-		
-			
 }
 
 
 function addlegend(legendNamesNodes, legendNamesLinks) {
 	var legend = d3.select("#legend");
+	
 	legend
 	.attrs({
 		"position": "absolute"
 	})
-	.style("top","10px")
+	.style("bottom","10px")
 	.style("right","10px")
 	.style("border", "1px rgb(54, 2, 2) solid")
 	
@@ -430,18 +422,21 @@ function addlegend(legendNamesNodes, legendNamesLinks) {
 		.style("background-color", "rgb(205 190 205)")
 		.style("cursor", "move")
 		.style("font-weight", "bold")
-
-	dragElement(document.getElementById('legend'))
-	
 		
+		dragElement(document.getElementById('legend'))
+		
+		
+	legendSize = (nGroups + lGroups + 1) * 20
 	legend = legend.append("svg")
 		.attrs({
-			"width": 180,
-			"height": (nGroups + lGroups + 1) * 20
+			"width": 200,
+			"height": legendSize
 		})
 		.style("background-color", "rgb(225 210 225)")
+		
 	var legendNodes = addlegendNodes(legend, legendNamesNodes);
 	var legendLinks = addlegendLinks(legend, legendNamesLinks);
+	log.text("size : "+legendSize)
 }
 
 function addlegendNodes(legend, legendNamesNodes){
@@ -457,7 +452,7 @@ function addlegendNodes(legend, legendNamesNodes){
 		.enter()
 		.append("g")
 		.attr("transform", function(d, i) {
-				return "translate(0," + (i * 20) + ")";
+				return "translate(3," + (i * 20) + ")";
 			});
 
 	legendNodes.append("rect")
@@ -492,7 +487,7 @@ function addlegendLinks(legend, legendNamesLinks){
 		.enter()
 		.append("g")
 		.attr("transform", function(d, i) {
-				return "translate(0," + (i * 20) + ")";
+				return "translate(3," + (i * 20) + ")";
 			});
 
 	legendLinks.append("rect")
@@ -658,7 +653,8 @@ function buildLegendNames(nodes){
 			});
 		}
 	}
-	legendNames.sort( function( a, b ) { return a.id - b.id });
+	if(SORT_LEGEND)
+		legendNames.sort( function( a, b ) { return a.id - b.id });
 	return legendNames;
 }
 
@@ -699,6 +695,7 @@ function dragElement(elmnt) {
 		elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
 		elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
 		elmnt.style.right = null;
+		elmnt.style.bottom = null;
 	}
 
 	function closeDragElement() {
@@ -706,4 +703,30 @@ function dragElement(elmnt) {
 		document.onmouseup = null;
 		document.onmousemove = null;
 	}
+}
+
+
+/** Node selection */
+function selectNode(d) {
+	nodeSelection = []
+	nodeSelection.push(d)
+	updateVisualNodeSelection()
+}
+
+function removeNodeFromSelection(d) {
+	nodeSelection.push(d);
+	updateVisualNodeSelection()
+}
+
+function updateVisualNodeSelection(){
+	nodes.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "1.0"))
+	nodeSelection.forEach(dd => d3.select('#n' + dd.id).attr('stroke-width', "3.0"))
+}
+
+function addNodeToSelection(d) {
+	const index = nodeSelection.indexOf(d);
+	if (index > -1) {
+		nodeSelection.splice(index, 1);
+	}
+	updateVisualNodeSelection()
 }
